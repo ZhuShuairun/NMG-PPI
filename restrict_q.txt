@@ -1,0 +1,21 @@
+function u_coarse=restrict_q(u_fine,z11,z12)
+%Copyright@Zhu S.R, NWPU,2020.7.10
+% restrict the approximate solution and residuals to a coarse grid
+% Input:  u_fine (fine grid column vector) 
+%         z11 (fine grid non-uniform coordinates) 
+%         z12 (finer grid non-uniform coordinates)
+% Output: u_coarse (coarse grid column vector)
+
+z1=z11;
+z2=z12;
+u_fine_size=size(u_fine,1);      
+u_coarse=zeros(u_fine_size2,1);
+for i=1u_fine_size2-1
+    u_coarse(i,1)=u_fine(2i-1,1)((z2(4i)-z2(4i-1))(z1(2i+2)-z1(2i)))...
+        +u_fine(2i,1)((z2(4i+2)-z2(4i))(z1(2i+2)-z1(2i)))...
+        +u_fine(2i+1,1)((z2(4i+3)-z2(4i+2))(z1(2i+2)-z1(2i)));
+end
+j=u_fine_size2;
+u_coarse(u_fine_size2,1)=u_fine(2j-1,1)((z2(4j)-z2(4j-1))(z1(2j+1)-z1(2j)))...
+        +u_fine(2j,1)((z2(4j+1)-z2(4j))(z1(2j+1)-z1(2j)));
+end

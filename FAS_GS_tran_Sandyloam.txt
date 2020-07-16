@@ -1,0 +1,59 @@
+function [x,res] = FAS_GS_tran_Sandyloam(x0,steps,data_z,resual,D_z,deta_t)
+%Copyright@Zhu SR, NWPU,2020.7.10
+%Input:   x0 (initial solution, column vector)
+%         steps (number of iterations)
+%         data_z:Discrete point interval
+%         resual:Residual term
+%         D_z:Control surface interval
+%         deta_t: Time step
+% Output: x (approximate solution)
+%         res (residual term)
+
+%The parameters of VG model
+Ks=4.62963*10^-6;
+a_g=3*10^-4;
+n_VG=1.4;
+m=1-1/n_VG;
+
+re=resual;
+h=[0;x0];  
+n=size(h,1); 
+N=n-1;
+a1=zeros(1,N);
+a2=zeros(1,N-1);
+a3=zeros(1,N-1);
+K1=zeros(N,1);
+for kk=1:steps
+  Se=(1+(a_g*abs(h)).^n_VG).^-m;
+  K=real(Ks*sqrt(Se).*((1-(1-Se.^-m).^m).^2));
+  C=-(21*sign(h(2:N+1)).*((3*abs(h(2:N+1)))/10000).^(2/5))./(500000*(((3*abs(h(2:N+1)))/10000).^(7/5) + 1).^(9/7));
+  C2=C.*D_z/deta_t; 
+ 
+  for i=1:N
+      K1(i)=2*K(i)*K(i+1)/(K(i)+K(i+1));
+  end 
+  for i=1:N-1
+    a1(1,i)=-K1(i+1)/data_z(i+1)-K1(i)/data_z(i)-C2(i);
+  end
+  a1(1,N)=-K1(N)/data_z(N)-C2(N);
+  for i=1:N-1
+    a2(1,i)=K1(i+1)/data_z(i+1);
+    a3(1,i)=K1(i+1)/data_z(i+1);
+  end
+ 
+  A1=diag(a1);
+  A2=diag(a2,-1);
+  A3=diag(a3,1);
+  A=A1+A2+A3;
+  
+  L1=tril(A,-1);U1=-triu(A,1);
+  D=diag(diag(A));
+  iD=D+L1;
+
+  B=A*h(2:N+1)+re;
+  hzX=iD\(U1*h(2:N+1)+B);
+  h(2:N+1)=hzX(:);
+  
+  x=hzX;
+  res=B-A*h(2:N+1);
+end

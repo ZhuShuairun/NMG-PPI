@@ -1,0 +1,20 @@
+function u_fine=interpolate_q(u_coarse,data_z)
+%Copyright@Zhu S.R, NWPU,2020.7.10
+%Interpolate the coarse-grid error to the fine grid and correct the fine-grid approximation
+% Input:  u_coarse (coarse grid column vector) 
+%         data_z: Non-uniform grid coordinate interval for the finer grid
+% Output: u_fine (fine grid column vector)
+
+z=data_z;
+u_coarse_size=size(u_coarse,1);     
+u_fine(1,1)=u_coarse(1,1)*(z(1)/(z(1)+z(2)));  %First item
+
+
+for i=1:u_coarse_size
+    u_fine(2*i,1)=u_coarse(i,1);  %Even items contain the last item
+end
+for i=3:2:2*u_coarse_size-1
+    u_fine(i,1)=u_coarse((i-1)/2,1)*(z(i+1)/(z(i)+z(i+1)))+u_coarse((i+1)/2,1)*(z(i)/(z(i)+z(i+1)));  %Odd items (except first and last items)
+end
+
+end
