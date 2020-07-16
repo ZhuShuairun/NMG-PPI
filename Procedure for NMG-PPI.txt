@@ -1,0 +1,197 @@
+%Using the NMG-PPI method to solve Richard equation (main program)
+%Copyright@Zhu SR, NWPU,2020.7.10
+%Soil type: Sandy loam
+
+clear all
+clc
+format long
+tic        %Start the stopwatch timer to calculate the total calculation time
+
+% Adopts a 5-layer grid, and the finite volume method is used to discretize RE
+% N6=320;N5=160;N4=80;N3=40;N2=20;N1=10;
+% N6=192;N5=96;N4=48;N3=24;N2=12;N1=6;
+N6=160;N5=80;N4=40;N3=20;N2=10;N1=5;
+
+%Soil thickness
+L=10;
+
+%Time step
+deta_t=0.01;
+n=24/deta_t;
+
+% Generation of non-uniform grid coordinates z (6 layers)
+z6=cos(pi*(0:N6)/N6)';z6=z6*(L/2)+L/2;
+for i=1:N6/2
+   temp = z6(i);
+   z6(i) = z6(N6+2-i);
+   z6(N6+2-i) = temp;
+end
+z5=cos(pi*(0:N5)/N5)';z5=z5*(L/2)+L/2;
+for i=1:N5/2
+   temp = z5(i);
+   z5(i) = z5(N5+2-i);
+   z5(N5+2-i) = temp;
+end
+z4=cos(pi*(0:N4)/N4)';z4=z4*(L/2)+L/2;
+for i=1:N4/2
+   temp = z4(i);
+   z4(i) = z4(N4+2-i);
+   z4(N4+2-i) = temp;
+end
+z3=cos(pi*(0:N3)/N3)';z3=z3*(L/2)+L/2;
+for i=1:N3/2
+   temp = z3(i);
+   z3(i) = z3(N3+2-i);
+   z3(N3+2-i) = temp;
+end
+z2=cos(pi*(0:N2)/N2)';z2=z2*(L/2)+L/2;
+for i=1:N2/2
+   temp = z2(i);
+   z2(i) = z2(N2+2-i);
+   z2(N2+2-i) = temp;
+end
+z1=cos(pi*(0:N1)/N1)';z1=z1*(L/2)+L/2;
+for i=1:(N1+1)/2    
+   temp = z1(i);
+   z1(i) = z1(N1+2-i);
+   z1(N1+2-i) = temp;
+end
+
+% Discrete point interval
+data_z5=zeros(N5,1);data_z4=zeros(N4,1);data_z3=zeros(N3,1);
+data_z2=zeros(N2,1);data_z1=zeros(N1,1);
+for i=1:N5
+    data_z5(i)=z5(i+1)-z5(i);
+end
+for i=1:N4
+    data_z4(i)=z4(i+1)-z4(i);
+end
+for i=1:N3
+    data_z3(i)=z3(i+1)-z3(i);
+end
+for i=1:N2
+    data_z2(i)=z2(i+1)-z2(i);
+end
+for i=1:N1
+    data_z1(i)=z1(i+1)-z1(i);
+end
+
+%Control surface interval
+D_z5=zeros(N5,1);D_z4=zeros(N4,1);D_z3=zeros(N3,1);D_z2=zeros(N2,1);
+D_z1=zeros(N1,1);
+for i=1:N5-1
+    D_z5(i)=z6(i*2+2)-z6(i*2);
+end
+D_z5(N5)=z6(2*N5+1)-z6(2*N5);
+for i=1:N4-1
+    D_z4(i)=z5(i*2+2)-z5(i*2);
+end
+D_z4(N4)=z5(2*N4+1)-z5(2*N4);
+for i=1:N3-1
+    D_z3(i)=z4(i*2+2)-z4(i*2);
+end
+D_z3(N3)=z4(2*N3+1)-z4(2*N3);
+for i=1:N2-1
+    D_z2(i)=z3(i*2+2)-z3(i*2);
+end
+D_z2(N2)=z3(2*N2+1)-z3(2*N2);
+for i=1:N1-1
+    D_z1(i)=z2(i*2+2)-z2(i*2);
+end
+D_z1(N1)=z2(2*N1+1)-z2(2*N1);
+ 
+v1=10; %Relaxation times
+v2=1;  %Relaxation times
+v3=1;  %Relaxation times
+
+%The parameters of VG model
+Ks=4.62963*10^-6;
+a_g=3*10^-4;
+seta_s=0.4;
+seta_r=0.05;
+n_VG=1.4;
+m=1-1/n_VG;
+qt=Ks/2;
+
+
+x5(:,1)=-z5(2:N5+1)*10;   %Initial solution when t=0h
+wucha1=1*10^-8;err=zeros(100,1);kk1=zeros(100,1);
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NMG-PPI iteration process (beginning)~~~~~~~~~~~~~~~~~~~~~~~~~~~
+for NSTEP=2:n+1
+    flag=10;%Convergence judgment value, initial value is assigned 10, let V cycle begin
+    j=0;    %Record the number of V cycles
+    C_5=seta_r+(seta_s-seta_r)*(1+(a_g*abs(x5(:,NSTEP-1))).^n_VG).^-m;
+  
+while flag>wucha1
+
+x5_0_initial=x5(:,NSTEP);   %Initial solution of V cycle
+
+%Relax v1 times for Layer 5
+[x5(:,NSTEP),res5] = NON_GS_tran_Sandyloam(x5_0_initial,v1,data_z5,D_z5,C_5,deta_t);
+
+%The 5th layer is restricted to the 4th layer, and relax v2 times for layer 4
+x4_0=restrict_q(x5(:,NSTEP),z5,z6);                             
+C_4=restrict_q(C_5,z5,z6);                                  
+r_4=restrict_q(res5,z5,z6);                             
+[x4,res4]= FAS_GS_tran_Sandyloam(x4_0,v2,data_z4,r_4,D_z4,deta_t);         
+
+%The 4th layer is restricted to the 3th layer, and relax v2 times for layer 3
+x3_0=restrict_q(x4,z4,z5);                            
+C_3=restrict_q(C_4,z4,z5);                           
+r_3=restrict_q(res4,z4,z5);                             
+[x3,res3]=FAS_GS_tran_Sandyloam(x3_0,v2,data_z3,r_3,D_z3,deta_t);         
+
+%The 3th layer is restricted to the 2th layer, and relax v2 times for layer 2
+x2_0=restrict_q(x3,z3,z4);                           
+C_2=restrict_q(C_3,z3,z4);                          
+r_2=restrict_q(res3,z3,z4);                             
+[x2,res2]= FAS_GS_tran_Sandyloam(x2_0,v2,data_z2,r_2,D_z2,deta_t);  
+       
+%The 2th layer is restricted to the 1th layer, and relax v2 times for layer 1
+x1_0=restrict_q(x2,z2,z3);                        
+C_1=restrict_q(C_2,z2,z3);                           
+r_1=restrict_q(res2,z2,z3);                             
+[x1,res1]= FAS_GS_tran_Sandyloam(x1_0,v2,data_z1,r_1,D_z1,deta_t);         
+
+%The 1th layer is interpolated to the 2th layer, and relax v3 times for layer 2
+x2_0=x2+interpolate_q(x1-x1_0,data_z2);                         
+[x2,res2] = NON_GS_tran_Sandyloam(x2_0,v3,data_z2,D_z2,C_2,deta_t);      
+
+%The 2th layer is interpolated to the 3th layer, and relax v3 times for layer 3
+x3_0=x3+interpolate_q(x2-x2_0,data_z3);                   
+[x3,res3] = NON_GS_tran_Sandyloam(x3_0,v3,data_z3,D_z3,C_3,deta_t);       
+
+%The 3th layer is interpolated to the 4th layer, and relax v3 times for layer 4
+x4_0=x4+interpolate_q(x3-x3_0,data_z4);                   
+[x4,res4] = NON_GS_tran_Sandyloam(x4_0,v3,data_z4,D_z4,C_4,deta_t);       
+
+%The 4th layer is interpolated to the 5th layer, and relax v1 times for layer 5
+x5_0=x5(:,NSTEP)+interpolate_q(x4-x4_0,data_z5);                  
+[x5(:,NSTEP),res5] = NON_GS_tran_Sandyloam(x5_0,v1,data_z5,D_z5,C_5,deta_t);        
+
+j=j+1;   %ncrease the number of cycles by 1
+err(j)=norm(x5_0_initial-x5(:,NSTEP),inf)/norm(x5_0_initial,inf);  %Convergence decision value
+ if err(j)<flag
+      flag=err(j); 
+ end
+
+end
+end
+t=toc;    %Total calculation time   
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~NMG-PPI iteration process (end)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+h=zeros(N5+1,n+1);
+h(2:N5+1,:)=x5(:,:);    %Synthetic numerical solution
+
+%plot
+set(0,'defaultfigurecolor','w');
+figure(1)
+plot(h(:,1),z5,'k-',h(:,n/24*4+1),z5,'*',h(:,n/24*8+1),z5,'*',h(:,n/24*12+1),z5,'*',h(:,n/24*16+1),z5,'*',h(:,n/24*20+1),z5,'*',h(:,n/24*24+1),z5,'*','Linewidth',1.5);
+xlabel('Pressure head (m)','FontSize',24);
+ylabel('z (m)','FontSize',24);
+legend('t=0','t=4 h','t=8 h','t=12 h','t=16 h','t=20 h','t=24 h');
+title('Sandy loam','FontSize',24);
