@@ -1,5 +1,5 @@
 %Using the NMG-PPI method to solve Richard equation (main program)
-%Copyright@Zhu SR, NWPU,2020.7.10
+%Copyright@Zhu SR, NWPU,2021.3.10
 %Soil type: Sandy loam
 
 clear all
