@@ -1,5 +1,5 @@
 function [x,res] = NON_GS_tran_Sandyloam(x0,steps,data_z,D_z,C1,deta_t)
-%Copyright@Zhu SR, NWPU,2020.7.10
+%Copyright@Zhu SR, NWPU,2021.3.10
 
 %Input:   x0 (initial solution, column vector)
 %         steps (number of iterations)
