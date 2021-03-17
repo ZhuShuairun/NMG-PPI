@@ -1,5 +1,5 @@
 function u_coarse=restrict_q(u_fine,z11,z12)
-%Copyright@Zhu S.R, NWPU,2020.7.10
+%Copyright@Zhu S.R, NWPU,2021.3.10
 % restrict the approximate solution and residuals to a coarse grid
 % Input:  u_fine (fine grid column vector) 
 %         z11 (fine grid non-uniform coordinates) 
