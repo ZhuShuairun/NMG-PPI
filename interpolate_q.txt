@@ -1,5 +1,5 @@
 function u_fine=interpolate_q(u_coarse,data_z)
-%Copyright@Zhu S.R, NWPU,2020.7.10
+%Copyright@Zhu S.R, NWPU,2021.3.10
 %Interpolate the coarse-grid error to the fine grid and correct the fine-grid approximation
 % Input:  u_coarse (coarse grid column vector) 
 %         data_z: Non-uniform grid coordinate interval for the finer grid
